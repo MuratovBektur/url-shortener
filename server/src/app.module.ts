@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SequelizeModule } from '@nestjs/sequelize';
-
-const isDev = ['development', 'dev'].includes(process.env.NODE_ENV);
+import { UrlModule } from './url/url.module';
+import { Url } from './url/url.model';
 
 @Module({
   imports: [
@@ -14,8 +14,9 @@ const isDev = ['development', 'dev'].includes(process.env.NODE_ENV);
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
+      models: [Url],
       autoLoadModels: true,
-      synchronize: isDev,
+      synchronize: false,
       define: {
         timestamps: true,
         underscored: true,
@@ -23,6 +24,7 @@ const isDev = ['development', 'dev'].includes(process.env.NODE_ENV);
         updatedAt: 'updated_at',
       },
     }),
+    UrlModule,
   ],
   controllers: [AppController],
   providers: [AppService],

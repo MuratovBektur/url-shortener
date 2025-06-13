@@ -6,7 +6,7 @@ source $1;
 # clean dist folder
 rm -rf dist
 # build new container for build vue app
-docker build  -f Dockerfile --build-arg VUE_GOOGLE_OAUTH_CLIENT_ID=$GOOGLE_OAUTH_CLIENT_ID -t $imageName .  || true;
+docker build  -f Dockerfile -t $imageName .  || true;
 # run container
 docker run --name $containerName -itd $imageName -v .:/app/dist ;
 # copy from container's dist folder to local dist foler
