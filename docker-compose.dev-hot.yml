@@ -1,0 +1,66 @@
+version: "3.9"
+
+name: url-shortener_dev-hot
+
+services:
+  client:
+    container_name: "url-shortener_client_dev-hot"
+    build:
+      context: ./client
+      dockerfile: Dockerfile_local
+    expose:
+      - 3000
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./client:/app
+  server:
+    container_name: "url-shortener_server_dev-hot"
+    restart: always
+    build:
+      context: server
+      dockerfile: Dockerfile_local
+    user: 1000:1000
+    expose:
+      - 5000
+    depends_on:
+      - db
+    env_file:
+      - ./local.env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./server:/app
+  nginx:
+    image: nginx
+    restart: "no"
+    container_name: "url-shortener_nginx_dev-hot"
+    ports:
+      - 80:80
+      - 443:443
+    depends_on:
+      - server
+      - client
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./nginx/dev-hot:/etc/nginx/conf.d
+      - ./nginx/certbot/conf:/etc/letsencrypt
+      - ./nginx/certbot/www:/var/www/certbot
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+  db:
+    container_name: url-shortener_db_dev-hot
+    image: postgres:15
+    restart: always
+    expose:
+      - 5432
+    environment:
+      - POSTGRES_DB=$DB_DATABASE
+      - POSTGRES_USER=$DB_USERNAME
+      - POSTGRES_PASSWORD=$DB_PASSWORD
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - ./postgres/dev:/var/lib/postgresql/data/pgdata
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./nginx/certbot/conf:/etc/letsencrypt
+      - ./nginx/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"

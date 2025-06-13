@@ -1,0 +1,12 @@
+FROM node:20
+
+WORKDIR /app
+
+COPY package.json ./
+
+COPY . .
+
+RUN npm install
+
+
+CMD [ -d "node_modules" ] && npm run dev || npm ci && npm run dev
