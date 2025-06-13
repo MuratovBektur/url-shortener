@@ -40,28 +40,37 @@ export class UrlController {
   }
 
   @Get(':shortCode')
-  async redirect(
+  async getUrlData(
     @Param('shortCode') shortCode: string,
-    @Res() res: Response,
-  ): Promise<void> {
+  ): Promise<{ originalUrl: string }> {
     // Базовая валидация shortCode
     if (!shortCode || shortCode.length < 3 || shortCode.length > 20) {
-      res.status(404).send('Ссылка не найдена');
-      return;
+      throw new HttpException(
+        'Некорректный код ссылки',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     try {
       const url = await this.urlService.findByShortCode(shortCode);
 
       if (!url) {
-        res.status(404).send('Ссылка не найдена или срок её действия истёк');
-        return;
+        throw new HttpException(
+          'Ссылка не найдена или срок её действия истёк',
+          HttpStatus.NOT_FOUND,
+        );
       }
 
-      res.redirect(301, url.originalUrl);
+      return { originalUrl: url.originalUrl };
     } catch (error) {
-      console.error('Ошибка при редиректе:', error);
-      res.status(500).send('Произошла ошибка сервера');
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      console.error('Ошибка при получении URL:', error);
+      throw new HttpException(
+        'Произошла ошибка сервера',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

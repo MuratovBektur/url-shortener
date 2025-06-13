@@ -8,7 +8,6 @@ import { Request } from 'express';
 import { Url } from './url.model';
 import { CreateUrlDto } from './dto/create-url.dto';
 import { ShortenResponseDto } from './dto/url-response.dto';
-import { globalPrefix } from 'src/libs/helpers';
 
 @Injectable()
 export class UrlService {
@@ -76,7 +75,7 @@ export class UrlService {
     const protocol = req.get('x-forwarded-proto') || req.protocol || 'http';
     const host = req.get('x-forwarded-host') || req.get('host');
     const baseUrl = `${protocol}://${host}`;
-    const shortUrl = `${baseUrl}/${globalPrefix}/${shortCode}`;
+    const shortUrl = `${baseUrl}/${shortCode}`;
 
     return {
       shortUrl,
