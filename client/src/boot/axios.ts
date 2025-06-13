@@ -1,6 +1,5 @@
 import { defineBoot } from '#q-app/wrappers';
 import axios, { type AxiosInstance } from 'axios';
-import { get_token_info } from 'src/libs/helpers';
 
 declare module 'vue' {
   interface ComponentCustomProperties {
@@ -27,17 +26,6 @@ export default defineBoot(({ app }) => {
   app.config.globalProperties.$api = api;
   // ^ ^ ^ this will allow you to use this.$api (for Vue Options API form)
   //       so you can easily perform requests against your app's API
-});
-
-api.interceptors.request.use((config) => {
-  const tokenInfo = get_token_info();
-
-  if (!tokenInfo) return config;
-
-  const { access_token, token_type } = tokenInfo;
-
-  config.headers.Authorization = `${token_type} ${access_token}`;
-  return config;
 });
 
 export { api };
