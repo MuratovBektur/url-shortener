@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Body,
   Param,
   Req,
@@ -89,6 +90,30 @@ export class UrlController {
         throw error;
       }
       console.error('Ошибка при получении информации о URL:', error);
+      throw new HttpException(
+        'Произошла ошибка сервера',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Delete('delete/:shortCode')
+  async deleteUrl(
+    @Param('shortCode') shortCode: string,
+  ): Promise<{ message: string }> {
+    try {
+      const isDeleted = await this.urlService.deleteUrl(shortCode);
+
+      if (!isDeleted) {
+        throw new HttpException('Ссылка не найдена', HttpStatus.NOT_FOUND);
+      }
+
+      return { message: 'Ссылка успешно удалена' };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      console.error('Ошибка при удалении URL:', error);
       throw new HttpException(
         'Произошла ошибка сервера',
         HttpStatus.INTERNAL_SERVER_ERROR,

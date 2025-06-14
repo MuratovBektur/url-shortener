@@ -122,6 +122,17 @@ export class UrlService {
     return url;
   }
 
+  async deleteUrl(shortCode: string): Promise<boolean> {
+    const url = await this.urlModel.findOne({
+      where: { shortCode },
+    });
+
+    if (!url) return false;
+
+    await url.destroy();
+    return true;
+  }
+
   private generateShortCode(): string {
     const chars =
       'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
