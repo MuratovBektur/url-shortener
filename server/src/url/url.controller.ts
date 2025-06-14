@@ -4,17 +4,16 @@ import {
   Get,
   Body,
   Param,
-  Res,
   Req,
   ValidationPipe,
   UsePipes,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import { UrlService } from './url.service';
 import { CreateUrlDto } from './dto/create-url.dto';
-import { ShortenResponseDto } from './dto/url-response.dto';
+import { ShortenResponseDto, UrlInfoResponseDto } from './dto/url-response.dto';
 
 @Controller()
 export class UrlController {
@@ -43,14 +42,6 @@ export class UrlController {
   async getUrlData(
     @Param('shortCode') shortCode: string,
   ): Promise<{ originalUrl: string }> {
-    // Базовая валидация shortCode
-    if (!shortCode || shortCode.length < 3 || shortCode.length > 20) {
-      throw new HttpException(
-        'Некорректный код ссылки',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
     try {
       const url = await this.urlService.findByShortCode(shortCode);
 
@@ -67,6 +58,37 @@ export class UrlController {
         throw error;
       }
       console.error('Ошибка при получении URL:', error);
+      throw new HttpException(
+        'Произошла ошибка сервера',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('info/:shortCode')
+  async getUrlInfo(
+    @Param('shortCode') shortCode: string,
+  ): Promise<UrlInfoResponseDto> {
+    try {
+      const url = await this.urlService.getUrlInfo(shortCode);
+
+      if (!url) {
+        throw new HttpException(
+          'Ссылка не найдена или срок её действия истёк',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return {
+        originalUrl: url.originalUrl,
+        createdAt: url.createdAt,
+        clickCount: url.clickCount,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      console.error('Ошибка при получении информации о URL:', error);
       throw new HttpException(
         'Произошла ошибка сервера',
         HttpStatus.INTERNAL_SERVER_ERROR,

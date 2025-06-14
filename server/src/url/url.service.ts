@@ -107,6 +107,21 @@ export class UrlService {
     return url;
   }
 
+  async getUrlInfo(shortCode: string): Promise<Url | null> {
+    const url = await this.urlModel.findOne({
+      where: { shortCode },
+    });
+
+    if (!url) return null;
+
+    // Проверка срока действия
+    if (url.expiresAt && url.expiresAt < new Date()) {
+      return null;
+    }
+
+    return url;
+  }
+
   private generateShortCode(): string {
     const chars =
       'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';

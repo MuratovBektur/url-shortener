@@ -16,3 +16,9 @@ export class ShortenResponseDto {
   alias?: string;
   createdAt: Date;
 }
+
+export class UrlInfoResponseDto {
+  originalUrl: string;
+  createdAt: Date;
+  clickCount: number;
+}
