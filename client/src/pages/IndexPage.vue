@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+  <q-page class="bg-gradient-to-br from-blue-50 to-indigo-100">
     <div class="container mx-auto px-4 py-16">
       <div class="text-center mb-16">
         <h1 class="text-6xl font-bold text-gray-800 mb-4">URL Shortener</h1>
@@ -163,29 +163,36 @@
           <h3 class="text-2xl font-bold text-gray-800 mb-4">
             ✅ Ваша сокращенная ссылка готова!
           </h3>
-          <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-xl mb-4">
-            <input
-              :value="shortUrlResult.shortUrl"
-              readonly
-              class="flex-1 px-4 py-2 bg-transparent border-none outline-none text-lg text-blue-600 font-medium"
-            />
-            <button
-              @click="copyToClipboard"
-              :class="[
-                'px-6 py-2 rounded-lg transition-colors font-medium',
-                copySuccess
-                  ? 'bg-green-600 text-white'
-                  : 'bg-blue-600 text-white hover:bg-blue-700',
-              ]"
-            >
-              {{ copySuccess ? 'Скопировано!' : 'Копировать' }}
-            </button>
-            <button
-              @click="goToPage"
-              class="px-6 py-2 rounded-lg transition-colors font-medium bg-blue-600 text-white hover:bg-blue-700"
-            >
-              Перейти по ссылке
-            </button>
+          <div class="space-y-4">
+            <!-- URL результат -->
+            <div class="flex items-center gap-2 p-4 bg-gray-50 rounded-xl">
+              <input
+                :value="shortUrlResult.shortUrl"
+                readonly
+                class="flex-1 px-4 py-2 bg-transparent border-none outline-none text-lg text-blue-600 font-medium min-w-0"
+              />
+            </div>
+
+            <!-- Кнопки -->
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button
+                @click="copyToClipboard"
+                :class="[
+                  'flex-1 px-6 py-3 rounded-lg transition-colors font-medium text-center',
+                  copySuccess
+                    ? 'bg-green-600 text-white'
+                    : 'bg-blue-600 text-white hover:bg-blue-700',
+                ]"
+              >
+                {{ copySuccess ? 'Скопировано!' : 'Копировать' }}
+              </button>
+              <button
+                @click="goToPage"
+                class="flex-1 px-6 py-3 rounded-lg transition-colors font-medium bg-purple-600 text-white hover:bg-purple-700 text-center"
+              >
+                Перейти по ссылке
+              </button>
+            </div>
           </div>
           <div
             class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600"
@@ -282,7 +289,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </q-page>
 </template>
 
 <script setup lang="ts">

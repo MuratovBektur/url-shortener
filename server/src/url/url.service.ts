@@ -8,7 +8,7 @@ import { Request } from 'express';
 import { Url } from './url.model';
 import { UrlClick } from './url-click.model';
 import { CreateUrlDto } from './dto/create-url.dto';
-import { ShortenResponseDto } from './dto/url-response.dto';
+import { ShortenResponseDto, UrlResponseDto } from './dto/url-response.dto';
 
 @Injectable()
 export class UrlService {
@@ -144,8 +144,68 @@ export class UrlService {
 
     if (!url) return false;
 
+    // Удаляем связанные клики
+    await this.urlClickModel.destroy({
+      where: { urlId: url.id },
+    });
+
     await url.destroy();
     return true;
+  }
+
+  async getAllUrls(
+    req?: Request,
+    sortBy?: string,
+    sortOrder?: 'asc' | 'desc',
+  ): Promise<UrlResponseDto[]> {
+    const orderField = sortBy || 'createdAt';
+    const orderDirection = sortOrder || 'desc';
+
+    // Определяем правильное поле для сортировки
+    let orderColumn: string;
+    switch (orderField) {
+      case 'clicks':
+        orderColumn = 'clickCount';
+        break;
+      case 'alias':
+        orderColumn = 'alias';
+        break;
+      default:
+        orderColumn = 'createdAt';
+    }
+
+    const urls = await this.urlModel.findAll({
+      order: [[orderColumn, orderDirection.toUpperCase()]],
+      attributes: [
+        'id',
+        'originalUrl',
+        'shortCode',
+        'alias',
+        'expiresAt',
+        'clickCount',
+        'createdAt',
+      ],
+    });
+
+    // Динамическое формирование базового URL из запроса
+    let baseUrl = 'http://localhost:3000';
+    if (req) {
+      const protocol = req.get('x-forwarded-proto') || req.protocol || 'http';
+      const host = req.get('x-forwarded-host') || req.get('host');
+      baseUrl = `${protocol}://${host}`;
+    }
+
+    return urls.map((url) => ({
+      id: url.id,
+      originalUrl: url.originalUrl,
+      shortCode: url.shortCode,
+      alias: url.alias,
+      shortUrl: `${baseUrl}/${url.shortCode}`,
+      expiresAt: url.expiresAt,
+      clickCount: url.clickCount,
+      clicks: url.clickCount, // Добавляем поле clicks для совместимости с фронтендом
+      createdAt: url.createdAt,
+    }));
   }
 
   private generateShortCode(): string {
@@ -158,9 +218,13 @@ export class UrlService {
     return result;
   }
 
-  async getAnalytics(
-    shortCode: string,
-  ): Promise<{ totalClicks: number; recentIpAddresses: string[] } | null> {
+  async getAnalytics(shortCode: string): Promise<{
+    totalClicks: number;
+    todayClicks: number;
+    weekClicks: number;
+    dailyClicks: Array<{ date: string; clicks: number }>;
+    recentIpAddresses: string[];
+  } | null> {
     const url = await this.urlModel.findOne({
       where: { shortCode },
     });
@@ -175,18 +239,75 @@ export class UrlService {
     // Получение общего количества кликов
     const totalClicks = url.clickCount;
 
-    // Получение последних 5 IP-адресов
-    const recentClicks = await this.urlClickModel.findAll({
+    // Получение всех кликов для обработки
+    const allClicks = await this.urlClickModel.findAll({
       where: { urlId: url.id },
       order: [['clickedAt', 'DESC']],
-      limit: 5,
-      attributes: ['ipAddress'],
+      attributes: ['ipAddress', 'clickedAt'],
     });
 
-    const recentIpAddresses = recentClicks.map((click) => click.ipAddress);
+    // Текущая дата и времена для фильтрации
+    const now = new Date();
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const endOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1,
+    );
+
+    // Начало недели: 6 дней назад (включая сегодня = 7 дней)
+    const startOfWeek = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - 6,
+    );
+
+    // Подсчет кликов за сегодня (календарный день: с 00:00:00 до 23:59:59)
+    const todayClicks = allClicks.filter(
+      (click) =>
+        click.clickedAt >= startOfToday && click.clickedAt < endOfToday,
+    ).length;
+
+    // Подсчет кликов за неделю (последние 7 календарных дней включая сегодня)
+    const weekClicks = allClicks.filter(
+      (click) => click.clickedAt >= startOfWeek,
+    ).length;
+
+    // Формирование статистики по дням за последние 30 дней
+    const dailyClicks = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const startOfDay = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+      );
+      const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+
+      const dayClicks = allClicks.filter(
+        (click) => click.clickedAt >= startOfDay && click.clickedAt < endOfDay,
+      ).length;
+
+      dailyClicks.push({
+        date: startOfDay.toISOString().split('T')[0],
+        clicks: dayClicks,
+      });
+    }
+
+    // Последние IP адреса (первые 5)
+    const recentIpAddresses = allClicks
+      .slice(0, 5)
+      .map((click) => click.ipAddress);
 
     return {
       totalClicks,
+      todayClicks,
+      weekClicks,
+      dailyClicks,
       recentIpAddresses,
     };
   }

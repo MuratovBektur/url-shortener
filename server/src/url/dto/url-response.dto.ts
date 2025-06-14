@@ -6,6 +6,7 @@ export class UrlResponseDto {
   shortUrl: string;
   expiresAt?: Date;
   clickCount: number;
+  clicks: number; // Для совместимости с фронтендом
   createdAt: Date;
 }
 
@@ -25,5 +26,8 @@ export class UrlInfoResponseDto {
 
 export class UrlAnalyticsResponseDto {
   totalClicks: number;
+  todayClicks: number;
+  weekClicks: number;
+  dailyClicks: Array<{ date: string; clicks: number }>;
   recentIpAddresses: string[];
 }

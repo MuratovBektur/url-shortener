@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   Req,
+  Query,
   ValidationPipe,
   UsePipes,
   HttpException,
@@ -18,6 +19,7 @@ import {
   ShortenResponseDto,
   UrlInfoResponseDto,
   UrlAnalyticsResponseDto,
+  UrlResponseDto,
 } from './dto/url-response.dto';
 
 @Controller()
@@ -38,6 +40,23 @@ export class UrlController {
       }
       throw new HttpException(
         'Произошла ошибка при создании сокращенной ссылки',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('urls')
+  async getAllUrls(
+    @Req() req: Request,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+  ): Promise<UrlResponseDto[]> {
+    try {
+      return await this.urlService.getAllUrls(req, sortBy, sortOrder);
+    } catch (error) {
+      console.error('Ошибка при получении списка URL:', error);
+      throw new HttpException(
+        'Произошла ошибка сервера',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -142,6 +161,9 @@ export class UrlController {
 
       return {
         totalClicks: analytics.totalClicks,
+        todayClicks: analytics.todayClicks,
+        weekClicks: analytics.weekClicks,
+        dailyClicks: analytics.dailyClicks,
         recentIpAddresses: analytics.recentIpAddresses,
       };
     } catch (error) {
