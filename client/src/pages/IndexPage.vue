@@ -180,6 +180,12 @@
             >
               {{ copySuccess ? 'Скопировано!' : 'Копировать' }}
             </button>
+            <button
+              @click="goToPage"
+              class="px-6 py-2 rounded-lg transition-colors font-medium bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Перейти по ссылке
+            </button>
           </div>
           <div
             class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600"
@@ -494,6 +500,11 @@ const copyToClipboard = async () => {
       copySuccess.value = false;
     }, 2000);
   }
+};
+const goToPage = () => {
+  if (!shortUrlResult.value) return;
+
+  window.open(shortUrlResult.value.shortUrl, '_blank');
 };
 
 // Функция форматирования даты
