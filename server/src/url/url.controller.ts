@@ -14,7 +14,11 @@ import {
 import { Request } from 'express';
 import { UrlService } from './url.service';
 import { CreateUrlDto } from './dto/create-url.dto';
-import { ShortenResponseDto, UrlInfoResponseDto } from './dto/url-response.dto';
+import {
+  ShortenResponseDto,
+  UrlInfoResponseDto,
+  UrlAnalyticsResponseDto,
+} from './dto/url-response.dto';
 
 @Controller()
 export class UrlController {
@@ -42,9 +46,10 @@ export class UrlController {
   @Get(':shortCode')
   async getUrlData(
     @Param('shortCode') shortCode: string,
+    @Req() req: Request,
   ): Promise<{ originalUrl: string }> {
     try {
-      const url = await this.urlService.findByShortCode(shortCode);
+      const url = await this.urlService.findByShortCode(shortCode, req);
 
       if (!url) {
         throw new HttpException(
@@ -114,6 +119,36 @@ export class UrlController {
         throw error;
       }
       console.error('Ошибка при удалении URL:', error);
+      throw new HttpException(
+        'Произошла ошибка сервера',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('analytics/:shortCode')
+  async getAnalytics(
+    @Param('shortCode') shortCode: string,
+  ): Promise<UrlAnalyticsResponseDto> {
+    try {
+      const analytics = await this.urlService.getAnalytics(shortCode);
+
+      if (!analytics) {
+        throw new HttpException(
+          'Ссылка не найдена или срок её действия истёк',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return {
+        totalClicks: analytics.totalClicks,
+        recentIpAddresses: analytics.recentIpAddresses,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      console.error('Ошибка при получении аналитики URL:', error);
       throw new HttpException(
         'Произошла ошибка сервера',
         HttpStatus.INTERNAL_SERVER_ERROR,

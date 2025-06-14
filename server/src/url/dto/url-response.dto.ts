@@ -22,3 +22,8 @@ export class UrlInfoResponseDto {
   createdAt: Date;
   clickCount: number;
 }
+
+export class UrlAnalyticsResponseDto {
+  totalClicks: number;
+  recentIpAddresses: string[];
+}

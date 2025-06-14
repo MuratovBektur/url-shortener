@@ -6,6 +6,7 @@ import {
 import { InjectModel } from '@nestjs/sequelize';
 import { Request } from 'express';
 import { Url } from './url.model';
+import { UrlClick } from './url-click.model';
 import { CreateUrlDto } from './dto/create-url.dto';
 import { ShortenResponseDto } from './dto/url-response.dto';
 
@@ -14,6 +15,8 @@ export class UrlService {
   constructor(
     @InjectModel(Url)
     private urlModel: typeof Url,
+    @InjectModel(UrlClick)
+    private urlClickModel: typeof UrlClick,
   ) {}
 
   async shortenUrl(
@@ -86,7 +89,7 @@ export class UrlService {
     };
   }
 
-  async findByShortCode(shortCode: string): Promise<Url | null> {
+  async findByShortCode(shortCode: string, req?: Request): Promise<Url | null> {
     const url = await this.urlModel.findOne({
       where: { shortCode },
     });
@@ -103,6 +106,18 @@ export class UrlService {
       clickCount: url.clickCount + 1,
       lastClickedAt: new Date(),
     });
+
+    // Сохранение клика для аналитики (если передан req)
+    if (req) {
+      const ipAddress = this.getClientIp(req);
+      const userAgent = req.get('User-Agent') || '';
+
+      await this.urlClickModel.create({
+        urlId: url.id,
+        ipAddress,
+        userAgent,
+      });
+    }
 
     return url;
   }
@@ -141,5 +156,52 @@ export class UrlService {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
+  }
+
+  async getAnalytics(
+    shortCode: string,
+  ): Promise<{ totalClicks: number; recentIpAddresses: string[] } | null> {
+    const url = await this.urlModel.findOne({
+      where: { shortCode },
+    });
+
+    if (!url) return null;
+
+    // Проверка срока действия
+    if (url.expiresAt && url.expiresAt < new Date()) {
+      return null;
+    }
+
+    // Получение общего количества кликов
+    const totalClicks = url.clickCount;
+
+    // Получение последних 5 IP-адресов
+    const recentClicks = await this.urlClickModel.findAll({
+      where: { urlId: url.id },
+      order: [['clickedAt', 'DESC']],
+      limit: 5,
+      attributes: ['ipAddress'],
+    });
+
+    const recentIpAddresses = recentClicks.map((click) => click.ipAddress);
+
+    return {
+      totalClicks,
+      recentIpAddresses,
+    };
+  }
+
+  private getClientIp(req: Request): string {
+    const xForwardedFor = req.get('x-forwarded-for');
+    if (xForwardedFor) {
+      return xForwardedFor.split(',')[0].trim();
+    }
+
+    const xRealIp = req.get('x-real-ip');
+    if (xRealIp) {
+      return xRealIp;
+    }
+
+    return req.ip || req.socket?.remoteAddress || 'unknown';
   }
 }
